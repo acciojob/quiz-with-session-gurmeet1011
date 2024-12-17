@@ -31,26 +31,85 @@ const questions = [
 ];
 
 // Display the quiz questions and choices
-function renderQuestions() {
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i];
-    const questionElement = document.createElement("div");
-    const questionText = document.createTextNode(question.question);
-    questionElement.appendChild(questionText);
-    for (let j = 0; j < question.choices.length; j++) {
-      const choice = question.choices[j];
-      const choiceElement = document.createElement("input");
-      choiceElement.setAttribute("type", "radio");
-      choiceElement.setAttribute("name", `question-${i}`);
-      choiceElement.setAttribute("value", choice);
-      if (userAnswers[i] === choice) {
-        choiceElement.setAttribute("checked", true);
-      }
-      const choiceText = document.createTextNode(choice);
-      questionElement.appendChild(choiceElement);
-      questionElement.appendChild(choiceText);
-    }
-    questionsElement.appendChild(questionElement);
-  }
-}
-renderQuestions();
+ const questionsContainer = document.getElementById("questions");
+        const submitButton = document.getElementById("submit");
+        const scoreDiv = document.getElementById("score");
+
+        // Load progress from session storage
+        const savedProgress = JSON.parse(sessionStorage.getItem("progress")) || {};
+
+        // Render questions
+        function renderQuestions() {
+            questionsContainer.innerHTML = "";
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement("div");
+                questionDiv.className = "question";
+
+                const questionText = document.createElement("p");
+                questionText.textContent = `${index + 1}. ${q.question}`;
+                questionDiv.appendChild(questionText);
+
+                const choicesDiv = document.createElement("div");
+                choicesDiv.className = "choices";
+
+                q.choices.forEach((choice) => {
+                    const label = document.createElement("label");
+
+                    const input = document.createElement("input");
+                    input.type = "radio";
+                    input.name = `question-${index}`;
+                    input.value = choice;
+					
+                    // Pre-select saved answer
+                    if (savedProgress[index] === choice) {
+                        input.checked = true;
+                    }
+
+                    label.appendChild(input);
+                    label.appendChild(document.createTextNode(choice));
+                    choicesDiv.appendChild(label);
+                });
+
+                questionDiv.appendChild(choicesDiv);
+                questionsContainer.appendChild(questionDiv);
+            });
+        }
+
+        // Save progress to session storage
+        function saveProgress() {
+            const progress = {};
+            questions.forEach((_, index) => {
+                const selected = document.querySelector(`input[name="question-${index}"]:checked`);
+                if (selected) {
+                    progress[index] = selected.value;
+                }
+            });
+            sessionStorage.setItem("progress", JSON.stringify(progress));
+        }
+// Calculate score and store in local storage
+        function calculateScore() {
+            let score = 0;
+            const progress = JSON.parse(sessionStorage.getItem("progress")) || {};
+
+            questions.forEach((q, index) => {
+                if (progress[index] === q.answer) {
+                    score++;
+                }
+            });
+
+            localStorage.setItem("score", score);
+            return score;
+        }
+
+        // Event listener for Submit button
+        submitButton.addEventListener("click", () => {
+            saveProgress();
+            const score = calculateScore();
+            scoreDiv.textContent = `Your score is ${score} out of ${questions.length}.`;
+        });
+
+        // Auto-save progress on selection
+        questionsContainer.addEventListener("change", saveProgress);
+
+        // Initial render
+        renderQuestions();
